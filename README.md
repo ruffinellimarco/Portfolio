@@ -5,4 +5,4 @@ Here's my current portfolio of some interesting projects I've conducted. These p
 * This analysis forecasts the Silicon Valley, Bay Area's housing price index (HPI), inventory, and market hotness. In this research, I leveraged the St. Louis Fred's API to pull data regarding the Housing Price Index (HPI), Inventory, and Market Hotness. 
 
 ## [The Analysis of Electric Vehicle (EV) Charging Price](https://github.com/ruffinellimarco/Portfolio/blob/main/Economic%20Analysis%20of%20EV%20Charging%20Price.mHTML)
-* The goal of this project is to understand how charging is priced on the basis of location and firm. Feel freehttps://github.com/ruffinellimarco/Portfolio/blob/main/Economic%20Analysis%20of%20EV%20Charging%20Price.mHTML to message me with questions pertaining to the analysis and data leveraged in this project on linkedIn.
+* The goal of this project is to understand how charging is priced on the basis of location and firm. Feel free to message me with questions pertaining to the analysis and data leveraged in this project on linkedIn.
