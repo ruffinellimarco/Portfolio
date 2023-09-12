@@ -1,0 +1,1380 @@
+---
+title: "Economic Outlook Report"
+author: "Marco Ruffinelli-Ojeda"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    #includes:
+      #in_header:
+      #- header.html
+    css: style.css
+    toc: true
+    toc_float: 
+      collapsed: true
+---
+
+```{r, echo=TRUE, message=FALSE, include=TRUE}
+library(fredr)
+library(fpp3)
+library(forecast)
+library(tidyverse)
+
+
+fredr_set_key("20f7358dd16d404c79b6b399f8c60ed7")
+
+windowsFonts()
+```
+
+```{r, warning=FALSE, echo=TRUE, message=FALSE, include=TRUE}
+#All-Transactions House Price Index for San Jose-Sunnyvale-Santa Clara, CA (MSA) (ATNHPIUS41940Q)	
+#Quarterly
+hpi_SJ_SV_SC <- fredr(
+  series_id = "ATNHPIUS41940Q",
+  observation_start = as.Date("1975-07-01"),
+  observation_end = as.Date("2022-10-01"),
+  frequency = "q"
+)
+class(hpi_SJ_SV_SC)
+
+ts_hpi_SJ_SV_SC <- hpi_SJ_SV_SC%>% 
+  mutate(Quarterly = yearquarter(date)) %>% 
+  as_tsibble(index = Quarterly) %>% 
+  select(Quarterly, value)
+class(ts_hpi_SJ_SV_SC)
+
+#Housing Inventory: Active Listing Count in San Jose-Sunnyvale-Santa Clara, CA (CBSA) (ACTLISCOU41940)
+#Monthly
+inventory_SJ_SV_SC <- fredr(
+  series_id = "ACTLISCOU41940",
+  observation_start = as.Date("2016-07-01"),
+  observation_end = as.Date("2023-04-01"),
+  frequency = "m"
+)
+class(inventory_SJ_SV_SC)
+
+
+
+ts_inventory_SJ_SV_SC <- inventory_SJ_SV_SC%>% 
+  mutate(Monthly = yearmonth(date)) %>% 
+  as_tsibble(index = Monthly) %>% 
+  select(Monthly, value)
+class(ts_inventory_SJ_SV_SC)
+
+#Market Hotness: Demand Score in San Jose-Sunnyvale-Santa Clara, CA (CBSA) (DESCMSA41940)	
+#Monthly
+
+market_hotness_SJ_SV_SC <- fredr(
+  series_id = "DESCMSA41940",
+  observation_start = as.Date("2017-08-01"),
+  observation_end = as.Date("2023-04-01"),
+  frequency = "m"
+)
+class(market_hotness_SJ_SV_SC)
+
+
+ts_market_hotness_SJ_SV_SC <- market_hotness_SJ_SV_SC %>% 
+  mutate(Monthly = yearmonth(date)) %>% 
+  as_tsibble(index = Monthly) %>% 
+  select(Monthly, value)
+class(ts_market_hotness_SJ_SV_SC)
+
+```
+
+# Data
+
+The data-sets within this report provide a comprehensive view of the housing market in the San Jose-Sunnyvale-Santa Clara metropolitan area, covering both supply (inventory) and demand (market hotness), as well as the overall trend in house prices.
+
+```{r, warning=FALSE, echo=TRUE, message=FALSE, include=TRUE}
+# Load the necessary package
+library(forecast)
+
+# Compute ndiffs for each series
+ndiffs_ts_hpi_SJ_SV_SC <- ndiffs(ts_hpi_SJ_SV_SC$value)
+ndiffs_ts_inventory_SJ_SV_SC <- ndiffs(ts_inventory_SJ_SV_SC$value)
+ndiffs_ts_market_hotness_SJ_SV_SC <- ndiffs(ts_market_hotness_SJ_SV_SC$value)
+
+# Print the result
+print(paste("ndiffs for ts_hpi_SJ_SV_SC: ", ndiffs_ts_hpi_SJ_SV_SC))
+print(paste("ndiffs for ts_inventory_SJ_SV_SC: ", ndiffs_ts_inventory_SJ_SV_SC))
+print(paste("ndiffs for ts_market_hotness_SJ_SV_SC: ", ndiffs_ts_market_hotness_SJ_SV_SC))
+
+
+
+```
+
+# Research Questions
+
+In this outlook we ask the following questions:
+
+(1) Can we identify a trended relationship between Housing Prices, Inventory, and Market Hotness?
+
+(2) Given our plots, can we see a common pattern of seasonality that aligns with each other?
+
+**Topics covered:**
+
+I. **Housing Price Indices**
+
+-   The data-set employed represents the All-Transactions House Price Index for the San Jose-Sunnyvale-Santa Clara metropolitan statistical area. The data is quarterly, starting from July 1975 to October 2022. The House Price Index is a broad measure of the movement of single-family house prices in the region.
+
+-   House Price Index for San Jose-Sunnyvale-Santa Clara, CA (MSA) (ATNHPIUS41940Q)
+
+II. **Inventory**
+
+-   This dataset represents the number of active housing listings in the San Jose-Sunnyvale-Santa Clara metropolitan statistical area. The data is monthly, starting from July 2016 to April 2023. This gives an indication of the supply side of the housing market in the region.
+
+-   Active Listing Count in San Jose-Sunnyvale-Santa Clara, CA (CBSA) (ACTLISCOU41940)
+
+III. **Market Hotness**
+
+-   This dataset represents the demand score, a measure of market hotness, for the San Jose-Sunnyvale-Santa Clara metropolitan statistical area. The data is monthly, starting from August 2017 to April 2023. This gives an indication of the demand side of the housing market in the region.
+
+-   Demand Score in San Jose-Sunnyvale-Santa Clara, CA (CBSA) (DESCMSA41940)
+
+Note: All data implemented in this study is gathered from FRED.
+
+# Summary of Findings
+
+In light of the comprehensive analysis and forecasting conducted in this study, our preferred models project a promising trajectory for the Housing Price Index in Silicon Valley over a five-year horizon. The models indicate a continuous upward trend in home prices, suggesting a robust real estate market in the region.
+
+In terms of housing inventory, our forecasts predict a stable and seasonal pattern, with no discernible upward or downward trends. This steady state of inventory suggests a balanced housing market where supply adequately meets demand. However, when juxtaposed with the market hotness index, intriguing patterns emerge.
+
+The market hotness index, a measure of market demand, is forecasted to exhibit a decreasing trend over the next 14 months according to our optimal model. Interestingly, its seasonality exhibits an inverse relationship with housing inventory. As market hotness increases, indicating heightened demand, inventory correspondingly decreases, and vice versa. This inverse relationship underscores the fundamental economic principles of supply and demand at play in the Silicon Valley housing market.
+
+In conclusion, while the upward trajectory of the Housing Price Index signals a healthy real estate market, the steady state of inventory coupled with a decreasing market hotness index could indicate a potential shift towards a more balanced market in the future. Taken together, these trends suggest that while the Silicon Valley housing market has been strong, with rising home prices, it may be moving towards a more balanced state. This could mean that the rapid price increases of the past may slow, and buyers may find themselves with more options and less competition
+
+# General Overview
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE}
+library(ggplot2)
+library(gridExtra)
+
+# Create individual plots
+p1 <- ggplot(ts_hpi_SJ_SV_SC, aes(x = Quarterly, y = value)) +
+  geom_line() +
+  labs(title = "Housing Price Index", x = "Quarter", y = "Index")
+
+p2 <- ggplot(ts_inventory_SJ_SV_SC, aes(x = Monthly, y = value)) +
+  geom_line() +
+  labs(title = "Inventory", x = "Month", y = "Count")
+
+p3 <- ggplot(ts_market_hotness_SJ_SV_SC, aes(x = Monthly, y = value)) +
+  geom_line() +
+  labs(title = "Market Hotness", x = "Month", y = "Score")
+
+# Combine the plots
+grid.arrange(p1, p2, p3, ncol = 1) 
+```
+
+#  {.tabset}
+
+## Housing Price Index
+
+**Overview & Synopsis**
+
+The House Price Index (HPI) is a broad measure of the movement of single-family property prices. This indicator serves as an indicator of house price trends, functioning as a for estimating changes in the rates of mortgage defaults, prepayments, and housing affordability.
+
+Number of Observations: 190 (Quarterly)
+
+Range of data: 1975 to 2022 (San Jose, Sunnyvale, and Santa Clara)
+
+Range of Values: 19.29 (Min) - 532.26 (Max)
+
+Trends: The HPI is trended upward across time, with a dip occurring during the Great Recession.
+
+Seasonality: There is evidence of seasonality, there are peaks almost eveery second quarter.
+
+Cycles: No cycles could be observed from the illustrations illustrated in the visuals.
+
+Directly below are necessary visuals of the original data (HPI).
+
+```{r, warning=FALSE, echo=TRUE,include=TRUE, message=FALSE,fig.align='center'}
+summary(hpi_SJ_SV_SC)
+
+stl_decomposition_hpi_SJ_SV_SC <- ts_hpi_SJ_SV_SC %>%
+  model(STL(value)) %>% components() 
+
+
+```
+
+**Original Plots and Important Figures**
+
+```{r, warning=FALSE, echo=TRUE,  message=FALSE,fig.align='center'}
+
+ts_hpi_SJ_SV_SC %>% autoplot(
+  ts_hpi_SJ_SV_SC$value) + ggtitle("Housing Price Index, San Jose, Sunnyvale, Santaclara" ) + stat_smooth(mehtod = "lm") + theme(plot.title = element_text(family = "serif", hjust = 0.5)) + labs(y=" ")
+
+ts_hpi_SJ_SV_SC%>%gg_tsdisplay()
+#stl_decomposition_hpi_SJ_SV_SC %>% autoplot() + ggtitle("STL Decompositon of HPI in Silcon Valley, Bay Area (SJ-SV-SC)") + theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+stl_decomposition_hpi_SJ_SV_SC %>% gg_season(season_year) + ggtitle("Seasonality of HPI in Silcon Valley, Bay Area (SJ-SV-SC)") + theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+```
+
+**Plotting Training Data (For ARIMA Accuracy)**
+
+```{r, warning=FALSE, echo=TRUE,  message=FALSE,fig.align='center'}
+
+
+# Calculate the row to split on
+split_row <- round(nrow(ts_hpi_SJ_SV_SC) * 0.8)
+
+# Split the data
+train_ts_hpi_SJ_SV_SC <- ts_hpi_SJ_SV_SC[1:split_row, ]
+test_ts_hpi_SJ_SV_SC <- ts_hpi_SJ_SV_SC[(split_row + 1):nrow(ts_hpi_SJ_SV_SC), ]
+
+# Create a new column 'type' in both train and test sets
+train_ts_hpi_SJ_SV_SC$type <- "Training"
+test_ts_hpi_SJ_SV_SC$type <- "Testing"
+
+# Convert these tsibble objects back to regular data frames for binding and plotting
+train_df <- as_tibble(train_ts_hpi_SJ_SV_SC)
+test_df <- as_tibble(test_ts_hpi_SJ_SV_SC)
+
+# Combine the training and test sets
+combined_data <- bind_rows(train_df, test_df)
+
+# Convert type column to factor
+combined_data$type <- as.factor(combined_data$type)
+
+# Plot
+ggplot(combined_data, aes(x = Quarterly, y = value, color = type)) +
+  geom_line() +
+  theme_minimal() +
+  ggtitle("Housing Price Index Data (SJ-SV-SC): Training and Testing Sets") +
+  labs(x = "Quarter", y = "HPI Value") +
+  theme(plot.title = element_text(hjust = 0.5))+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+
+
+```
+
+**Differeneced Data For Stationarity**
+
+This section will discuss the auto-correlation, and partial auto-correlation function plots (ACF/PACF), these plots allowed for the estimation of our performed forecasts.
+
+**First Difference (Full-Sample)**
+
+```{r, warning=FALSE, echo=TRUE,  message=FALSE,fig.align='center'}
+
+
+#First Difference
+diff_hpi_sj_sv_sc <- ts_hpi_SJ_SV_SC$value %>% difference(4) 
+unitroot_kpss(diff_hpi_sj_sv_sc)
+
+#The KPSS test statistic is 0.43 and the p-value is 0.064. Since the p-value is greater than 0.05, you would not reject the null hypothesis of stationarity. That means, according to the KPSS test, the time series appears to be stationary around a deterministic trend.
+
+
+#First Difference
+ts_hpi_SJ_SV_SC %>% autoplot(
+  ts_hpi_SJ_SV_SC$value %>% difference(4)) + 
+  ggtitle("First Difference HPI SJ-SV-SC (KPSS = .065)" )+ theme(plot.title = element_text(family = "serif", hjust = 0.5)) + stat_smooth(mehtod = "lm")  + theme(plot.title = element_text(family = "serif", hjust = 0.5)) +
+  theme(axis.title.y = element_blank())
+
+ts_hpi_SJ_SV_SC %>% 
+  gg_tsdisplay((ts_hpi_SJ_SV_SC$value) %>% difference(lag=4), plot_type="partial") +labs(y="Innovation Residuals") 
+
+
+```
+
+**Second Difference (Full-Sample)**
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+#Second Difference
+ts_hpi_SJ_SV_SC %>% autoplot(
+  ts_hpi_SJ_SV_SC$value %>% difference(4) %>% difference())+
+  ggtitle("Difference-Difference HPI SJ-SV-SC" )+ theme(plot.title = element_text(family = "serif", hjust = 0.5)) + stat_smooth(mehtod = "lm") +
+  theme(axis.title.y = element_blank())
+
+ts_hpi_SJ_SV_SC %>% 
+  gg_tsdisplay((ts_hpi_SJ_SV_SC$value)%>% difference(lag=4) %>% difference(), plot_type="partial") +labs(y="Innovation Residuals") 
+
+```
+
+We visualize an ACF plot for first difference (I=1): since we notice that a few significant spikes that are decreasing to a zero line, and since we only have 2 significant spikes in the PACF we feel confident in using an full AR model).
+
+PACF for the first difference (I=1): There are three significant spikes, prior to non-seasonal lags, however, the third spike does not warrant that much concern. Thus, we can implement AR2 Model.There are two non-seasonal spikes to consider.
+
+ACF Plot for second difference(I=1,d=1): We observe two significant spikes spikes in the ACF, and a sinusoidal pattern, thus we assume an AR model.
+
+PACF for the second difference (I=1,d=1): 1 seasonal spike, 1 non-seasonal spike.
+
+ARIMA(p,d,q)(P,D,Q) models after analysis:
+
+-   ARIMA(2,1,0)(2,0,0)
+-   ARIMA(2,1,0)(2,1,0)
+
+In our forecast we implement auto-ARIMA as well.
+
+-   ARIMA(2,1,2)(1,0,0)
+
+**Differenced Data (Restricting to Training Data)**
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+
+# Plot
+ggplot(train_df, aes(x = Quarterly, y = value, color = type)) +
+  geom_line() +
+  theme_minimal() +
+  ggtitle("Training Data HPI (SJ-SV-SC") +
+  labs(x = "Quarter", y = "HPI Value") +
+  theme(plot.title = element_text(hjust = 0.5))+ theme(plot.title = element_text(family = "serif", hjust = 0.5)) + stat_smooth(mehtod = "lm")
+
+#First Difference
+diff_hpi_train <- train_df$value %>% difference(4) 
+unitroot_kpss(diff_hpi_train)
+
+#The KPSS test statistic is 0.43 and the p-value is 0.064. Since the p-value is greater than 0.05, you would not reject the null hypothesis of stationarity. That means, according to the KPSS test, the time series appears to be stationary around a deterministic trend.
+
+
+#First Difference
+# First Difference
+diff_hpi_train <- diff(train_df$value, lag = 1)
+
+# Plot First Difference
+ggplot(data = NULL, aes(x = train_df$Quarterly[-1], y = diff_hpi_train)) +
+  geom_line()+
+  stat_smooth(method = "lm")+
+  theme_minimal() +
+  ggtitle("First Difference of Training Data HPI (SJ-SV-SC)") +
+  labs(x = "Quarter", y = "First Difference") +
+  theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+acf(diff_hpi_train, lag.max = 24, main = "Autocorrelation Plots")
+pacf(diff_hpi_train, lag.max = 24, main = "Partial Autocorrelation Plots")
+
+```
+
+The ACF plot for the first difference of the training data HPI (SJ-SV-SC) shows a sinusoidal pattern. This suggests that a seasonal ARIMA model may be a better fit than a non-seasonal ARIMA model.
+
+In this case, the AR component with p=1 models the correlation between the current value of the HPI and its previous value. The MA component with q=0 models the correlation between the current value of the HPI and its errors. The constant term is a constant value that is added to the model. The seasonal component with d=1 models the correlation between the current value of the HPI and its values at the same time of year in previous years.
+
+It is important to note that the seasonal ARIMA(p,1,q) model is just one possible model that could be used to forecast the HPI. Other models, such as seasonal ARIMA(p,d,q) models, could also be used. The best model to use will depend on the specific characteristics of the data.
+
+The PACF plot shows that there is no significant autocorrelation at lags greater than 1. This suggests that an ARIMA(p,1,q) model with p=1 and q=0 would be a good fit for the data.
+
+ARIMA models after analysis:
+
+-   ARIMA(1,1,0)
+
+The use of `auto.arima()` produced the same results as our analysis.
+
+**Forecasts (ARIMA)**
+
+```{r, warning=FALSE,include=TRUE, echo=TRUE,  message=FALSE,fig.align='center'}
+
+
+#trainset ARIMA 110 (Restricted)
+fit_train_ARIMA110 <- train_ts_hpi_SJ_SV_SC %>%
+    model(ARIMA(value ~ pdq(1,1,0)))
+report(fit_train_ARIMA110)
+
+#trainset ARIMA 110 (Full Sample)
+fit_full_ARIMA110 <- ts_hpi_SJ_SV_SC %>%
+    model(ARIMA(value ~ pdq(1,1,0)))
+report(fit_full_ARIMA110)
+
+
+#trainset ARIMA 210200
+fit_train_ARIMA210210 <- train_ts_hpi_SJ_SV_SC %>%
+    model(ARIMA(value ~ pdq(2,1,0) + PDQ(2,1,0)))
+report(fit_train_ARIMA210210)
+
+fit_train_AUTO_ARIMA212100 <- train_ts_hpi_SJ_SV_SC %>%
+    model(ARIMA(value ~ pdq(2,1,2) + PDQ(2,1,0)))
+report(fit_train_AUTO_ARIMA212100)
+
+#hpi_sj_Sv_sc_fARIMA210001
+hpi_sj_Sv_sc_fcARIMA210000 <- ts_hpi_SJ_SV_SC %>%
+  model(ARIMA(value ~ pdq(2,1,0) + PDQ(2,0,0)))
+report(hpi_sj_Sv_sc_fcARIMA210000)
+
+#second difference ARIMA
+hpi_sj_Sv_sc_fcARIMA210210 <- ts_hpi_SJ_SV_SC %>%
+  model(ARIMA(value ~ pdq(2,1,0) + PDQ(2,1,0)))
+report(hpi_sj_Sv_sc_fcARIMA210210)
+
+
+#Auto Arima
+hpi_auto_ARIMA212100 <- auto.arima(ts_hpi_SJ_SV_SC)
+
+hpi_auto_ARIMA212100 <- ts_hpi_SJ_SV_SC %>%
+  model(ARIMA(value ~ pdq(2,1,2) + PDQ(1,0,0)))
+report(hpi_sj_Sv_sc_fcARIMA210000)
+
+
+
+#Create ARIMA model for the first difference
+hpi_ARIMA210200 <- arima(diff_hpi_sj_sv_sc, order = c(2,1,0), seasonal = list(order = c(2,0,0), period = 4))
+
+#Create ARIMA model for the second difference
+hpi_ARIMA21210 <- arima(diff_hpi_sj_sv_sc, order = c(2,1,0), seasonal = list(order = c(2,1,0), period = 4))
+
+#Create Auto ARIMA
+hpi_ARIMA212100 <- arima(diff_hpi_sj_sv_sc, order = c(2,1,2), seasonal = list(order = c(1,0,0), period = 4))
+
+
+
+
+# Produce ACF and PACF plots for residuals of the ARIMA model
+(hpi_ARIMA210200$residuals)
+ggAcf(hpi_ARIMA210200$residuals)
+ggPacf(hpi_ARIMA210200$residuals)
+
+
+# Produce ACF and PACF plots for residuals of the ARIMA model for second difference
+(hpi_ARIMA21210$residuals)
+ggAcf(hpi_ARIMA21210$residuals)
+ggPacf(hpi_ARIMA21210$residuals)
+
+# Produce ACF and PACF plots for residuals of the Auto ARIIMA
+
+(hpi_ARIMA212100$residuals)
+ggAcf(hpi_ARIMA212100$residuals)
+ggPacf(hpi_ARIMA212100$residuals)
+
+# Produce forecast for the next 12 quarters
+forecast_diff1 <- forecast(hpi_ARIMA210200, h = 12)
+# Produce forecast for the next 12 quarters
+forecast_diff2 <- forecast(hpi_ARIMA21210, h = 12)
+
+
+```
+
+```{r, warning=FALSE, echo=TRUE,  message=FALSE,fig.align='center', include=TRUE}
+#Show forecast
+forecast_diff1 %>% autoplot()+ theme(plot.title = element_text(family = "serif", hjust = 0.5)) +
+  ggtitle("Forecast for First Difference of HPI SJ-SV-SC") 
+
+#Show forecast
+forecast_diff2 %>% autoplot()+ theme(plot.title = element_text(family = "serif", hjust = 0.5)) +
+  ggtitle("Forecast for Second Difference of HPI SJ-SV-SC")
+
+
+
+
+
+```
+
+```{r, warning=FALSE, echo=TRUE,  message=FALSE,fig.align='center'}
+# Load the necessary library
+library(broom)
+
+# Obtain AICs
+AIC_score_hpi_sj_Sv_sc_fcARIMA210000 <- glance(hpi_sj_Sv_sc_fcARIMA210000)$AIC
+AIC_score_hpi_sj_Sv_sc_fcARIMA210210 <- glance(hpi_sj_Sv_sc_fcARIMA210210)$AIC
+AIC_score_hpi_auto_ARIMA212100 <- glance(hpi_auto_ARIMA212100)$AIC
+
+
+
+
+# Print the AIC scores
+cat("AIC score for hpi_sj_Sv_sc_fcARIMA210000: ", AIC_score_hpi_sj_Sv_sc_fcARIMA210000, "\n")
+cat("AIC score for hpi_sj_Sv_sc_fcARIMA210210: ", AIC_score_hpi_sj_Sv_sc_fcARIMA210210, "\n")
+cat("AIC score for hpi_auto_ARIMA212100: ", AIC_score_hpi_auto_ARIMA212100, "\n")
+cat("AIC score for fit_full_ARIMA110: ", "1181.33")
+
+
+
+
+
+```
+
+After analyzing the AIC values we see that when forecasting, given the the full data-set, the best model is ARIMA210210. We will verify this by plotting upon the test set, and analyze the regression plots respectively.
+
+**Plotting ARIMA Forecasts & Test Set for Accuracy (Restricted Forecast Horizon to Test Set)**
+
+```{r, warning=FALSE, echo=TRUE,  message=FALSE,fig.align='center'}
+
+library(forecast)
+
+fit_train_ARIMA210210_hpi_forecast <- forecast(fit_train_ARIMA210210, h = "10 years")
+
+
+
+fit_train_AUTO_ARIMA212100_hpi_forecast <- forecast(fit_train_AUTO_ARIMA212100, h = "10 years")
+
+hpi_ARIMA110_train_fc <- forecast(fit_train_ARIMA110, h = "10 years")
+
+
+
+hpi_ARIMA110_train_fc %>%
+  autoplot(ts_hpi_SJ_SV_SC) + xlab("Time") + ylab("HPI Value") + ggtitle("HPI Training Data, Forcast Restricted to Test (ARIMA110)") + labs(subtitle = "Employing the Training Data Under-estimates Real Predictions")  + theme(plot.title = element_text(family = "serif", hjust = 0.5)) + theme(plot.subtitle = element_text(family = "serif", hjust = 0.5)) 
+
+fit_train_ARIMA210210_hpi_forecast%>%
+  autoplot(ts_hpi_SJ_SV_SC) + xlab("Time") + ylab("HPI Value") + ggtitle("HPI Training Data, Forecast Restricted to Test (ARIMA210210)")+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+
+fit_train_AUTO_ARIMA212100_hpi_forecast%>%
+  autoplot(ts_hpi_SJ_SV_SC) + xlab("Time") + ylab("HPI Value") + ggtitle("HPI Training Data, Forecast Restricted to Test (ARIMA212100)")  + labs(subtitle = "Over-estimates more than ARIMA 210210")+ theme(plot.title = element_text(family = "serif", hjust = 0.5)) + theme(plot.subtitle = element_text(family = "serif", hjust = 0.5)) 
+
+
+
+
+```
+
+```{r, warning=FALSE, echo=TRUE,  message=FALSE,fig.align='center'}
+
+fit_train_ARIMA210210_hpi_forecast <- forecast(fit_train_ARIMA210210, h = "10 years")
+
+
+
+fit_train_AUTO_ARIMA212100_hpi_forecast <- forecast(fit_train_AUTO_ARIMA212100, h = "10 years")
+
+hpi_ARIMA110_train_fc <- forecast(fit_train_ARIMA110, h = "10 years")
+
+
+
+hpi_ARIMA110_train_fc %>%
+  autoplot(test_ts_hpi_SJ_SV_SC) + xlab("Time") + ylab("HPI Value") + ggtitle("HPI Training Data, Forcast Restricted to Test (ARIMA110)") + labs(subtitle = "Utilizing the Training Data underestimates Test Data")  + theme(plot.title = element_text(family = "serif", hjust = 0.5)) + theme(plot.subtitle = element_text(family = "serif", hjust = 0.5)) 
+
+fit_train_ARIMA210210_hpi_forecast%>%
+  autoplot(test_ts_hpi_SJ_SV_SC) + xlab("Time") + ylab("HPI Value") + ggtitle("HPI Training Data, Forecast Restricted to Test (ARIMA210210)")+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+
+fit_train_AUTO_ARIMA212100_hpi_forecast%>%
+  autoplot(test_ts_hpi_SJ_SV_SC) + xlab("Time") + ylab("HPI Value") + ggtitle("HPI Training Data, Forecast Restricted to Test (ARIMA212100)")  + labs(subtitle = "overestimates more than ARIMA 210210")+ theme(plot.title = element_text(family = "serif", hjust = 0.5)) + theme(plot.subtitle = element_text(family = "serif", hjust = 0.5)) 
+
+
+```
+
+**Residual Diagnostic Tests, Determining The Best Model**
+
+**Naive Plot (We utilize this as a baseline):**
+
+```{r, warning=FALSE, echo=TRUE,  message=FALSE,fig.align='center'}
+
+fit_naive_ts_hpi_SJ_SV_SC <- ts_hpi_SJ_SV_SC %>% model(SNAIVE(value))
+
+fit_naive_ts_hpi_SJ_SV_SC %>% gg_tsresiduals()
+
+```
+
+-   ACF plot details no-white noise, skewed distribution of residuals.
+-   The graph identifies this wouldn't be a good forecast.
+
+**ARIMA(2,1,0)(2,1,0)**
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE,fig.align='center'}
+hpi_sj_Sv_sc_fcARIMA210210 %>% gg_tsresiduals()
+
+
+```
+
+-   Uni-modal histogram, white noise in ACF plot.
+
+**Auto ARIMA(2,1,2)(1,0,0)**
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+hpi_auto_ARIMA212100%>% gg_tsresiduals()
+```
+
+-   Very Similar to ARIMA210210. White noise in ACF plot.
+
+-   Both ARIMA models can effectively predict next five years. However, given the AUTO ARIMA's tighter confidence intervals, and more realistic trajectory, we employ ARIMA210210 as our most effective model.
+
+**Forecasts**
+
+This section visualizes the forecasts for the ARIMA models utilizing the full sample of HPI.
+
+```{r, warning=FALSE, echo=TRUE,  message=FALSE,fig.align='center'}
+fit_naive_ts_hpi_SJ_SV_SC %>%
+  forecast() %>%
+  autoplot(ts_hpi_SJ_SV_SC) + labs(title = "NAIVE forecast HPI SJ-SV-SC") + theme(plot.title = element_text(family = "serif", hjust = 0.5))
+```
+
+```{r, warning=FALSE, echo=TRUE,  message=FALSE,fig.align='center'}
+# Plot the original data and the forecasts
+
+
+
+# Create a five horizon forecast for the ARIMA(1,1,0)(0,0,0) model
+full_ARIMA110_forecast <- forecast(fit_full_ARIMA110, h = "5 years")
+
+autoplot(ts_hpi_SJ_SV_SC) +
+  autolayer(full_ARIMA110_forecast, series = "ARIMA(1,1,0)", PI = FALSE, aes(color = "red")) +  xlab("Time") + ylab("HPI Value") +
+  ggtitle("HPI Original Data and Five Year Forecast ARIMA(110)") +
+  guides(colour = guide_legend(title = "Models")) +
+  scale_color_manual(values = c("red", "blue"))+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+```
+
+```{r, warning=FALSE, echo=TRUE,  message=FALSE,fig.align='center'}
+
+# Create a five horizon forecast for the ARIMA(2,1,0)(2,1,0) model
+hpi_sj_Sv_sc_fcARIMA210210_forecast <- forecast(hpi_sj_Sv_sc_fcARIMA210210, h = "5 years")
+
+# Create a five horizon forecast for the Auto ARIMA(2,1,2)(1,0,0) model
+hpi_auto_ARIMA212100_forecast <- forecast(hpi_auto_ARIMA212100, h = "5 years")
+
+# Create a five horizon forecast for the Auto ARIMA(2,1,2)(1,0,0) model
+hpi_auto_ARIMA212100_forecast <- forecast(hpi_auto_ARIMA212100, h = "5 years")
+
+autoplot(ts_hpi_SJ_SV_SC) +
+  autolayer(hpi_sj_Sv_sc_fcARIMA210210_forecast, series = "ARIMA(2,1,0)(2,1,0)", PI = FALSE, aes(color = "red")) +  xlab("Time") + ylab("HPI Value") +
+  ggtitle("HPI Original Data and Five Year Forecast (ARIMA210210)") +
+  guides(colour = guide_legend(title = "Models")) +
+  scale_color_manual(values = c("red", "blue"))+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+
+```
+
+```{r, warning=FALSE, echo=TRUE,  message=FALSE,fig.align='center'}
+# Plot the original data and the forecasts
+
+
+
+
+
+autoplot(ts_hpi_SJ_SV_SC) +
+  autolayer(hpi_sj_Sv_sc_fcARIMA210210_forecast, series = "ARIMA(2,1,0)(2,1,0)", PI = FALSE, aes(color = "red")) +  xlab("Time") + ylab("HPI Value") +
+  ggtitle("HPI Original Data and Five Year Forecast (ARIMA210210)") +
+  guides(colour = guide_legend(title = "Models")) +
+  scale_color_manual(values = c("red", "blue"))+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+
+```
+
+**Preferred Model**
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE ,fig.align='center'}
+autoplot(ts_hpi_SJ_SV_SC) +
+  autolayer(hpi_auto_ARIMA212100_forecast, series = "ARIMA(2,1,2)(1,0,0)", PI = FALSE, aes(color = "red")) +  xlab("Time") + ylab("HPI Value") +
+  ggtitle("HPI Original Data and Five Year Forecast (AUTO ARIMA212100)") +
+  guides(colour = guide_legend(title = "Models")) +
+  scale_color_manual(values = c("red", "blue"))+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+```
+
+**Broader Implications**
+
+The forecasts performed in this research illustrate predicted increase over the time horizon of five years.
+
+Forecasting Bay Area housing price index data, particularly in Silicon Valley, is crucial for a variety of parties. It enables real estate investors to make informed judgments by identifying trends and predicting future price fluctuations. This allows them to maximize their investment returns by purchasing, selling, or holding properties strategically. The second advantage of housing price forecasts is that purchasers and sellers can anticipate market conditions and make well-informed decisions. Such forecasts enable customers to plan purchases based on future price changes, while sellers can strategically schedule property listings to achieve the highest possible sale prices. Thirdly, housing price forecasts are crucial for policy and planning purposes. Government officials and urban planners can use this information to shape housing policies and urban development plans, ensuring a balanced supply of affordable housing and sustainable growth. In addition, financial institutions use housing price forecasts to evaluate risk, manage mortgage portfolios, and determine lending practices. Lastly, housing price index forecasts offer valuable insights for economic analysis, as they serve as leading indicators of economic health and influence consumer purchasing, construction activity, and overall economic growth.
+
+The projected upward trajectory in housing prices also carries implications for the broader economy. It signifies a potential wealth effect, as homeowners experience an increase in their property values, leading to increased consumer confidence and spending.
+
+## Inventory
+
+**Overview & Synopsis:**
+
+This data is collected on a monthly basis, starting from July 2016 and extending to April 2023. The inventory data provides valuable insights into the supply side of the housing market in the SJ-SV-SC MSA. The inventory level in a housing market is a key indicator of market conditions. A high inventory level indicates a buyer's market, where buyers have more options and may have more negotiating power. On the other hand, a low inventory level indicates a seller's market, where sellers may have the upper hand due to increased competition among buyers.
+
+Number of Observations: 82
+
+Range of data: July 2016 - April 2023
+
+Range of Values: 489.0 (Min) - 2366.0 (Max)
+
+Trends: Generally average trend over the last 7 years, no downward nor upward trend.
+
+Seasonality: Peaks in Summer months, troughs in winter months.
+
+Cycles: No cycles could be identified
+
+**Original Plots and Important Figures**
+
+```{r, echo=TRUE, fig.align='center',warning=FALSE, message=FALSE}
+
+ts_inventory_SJ_SV_SC %>% autoplot(
+  ts_inventory_SJ_SV_SC$value) + ggtitle("Inventory, San Jose, Sunnyvale, Santa Clara") + stat_smooth(method = "lm") + theme(plot.title = element_text(family = "serif", hjust = 0.5)) + ylab("")
+
+# STL Decomposition of the Inventory time series data
+#stl_decomposition_inventory_SJ_SV_SC <- ts_inventory_SJ_SV_SC %>% stl(s.window = "periodic")
+#stl_decomposition_inventory_SJ_SV_SC %>% autoplot() + ggtitle("STL Decomposition of Inventory in Silicon Valley, #Bay Area (SJ-SV-SC)") + theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+ts_inventory_SJ_SV_SC%>%gg_tsdisplay()
+
+#Seasonality 
+#ts_inventory_SJ_SV_SC %>% as_tsibble() %>% 
+ # gg_season() + ggtitle("Seasonality of Inventory in Silicon Valley, Bay Area (SJ-SV-SC)") + theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+
+```
+
+Observe, the Inventory data is practically stationary, there is strong sense of seasonality in the summer months (June, July are peak months across time) Comparatively the inventory of houses is at its lowest points in January.
+
+**Plotting Training Data**
+
+```{r, fig.align='center', echo=TRUE,message=FALSE,warning=FALSE}
+
+
+# Calculate the row to split on
+split_row <- round(nrow(ts_inventory_SJ_SV_SC) * 0.8)
+
+# Split the data
+train_ts_inventory_SJ_SV_SC <- ts_inventory_SJ_SV_SC[1:split_row, ]
+test_ts_inventory_SJ_SV_SC <- ts_inventory_SJ_SV_SC[(split_row + 1):nrow(ts_hpi_SJ_SV_SC), ]
+
+# Create a new column 'type' in both train and test sets
+train_ts_inventory_SJ_SV_SC$type <- "Training"
+test_ts_inventory_SJ_SV_SC$type <- "Testing"
+
+# Convert these tsibble objects back to regular data frames for binding and plotting
+train_df_inv <- as_tibble(train_ts_inventory_SJ_SV_SC)
+test_df_inv <- as_tibble(test_ts_inventory_SJ_SV_SC)
+
+# Combine the training and test sets
+combined_data_inv <- bind_rows(train_df_inv, test_df_inv)
+
+# Convert type column to factor
+combined_data_inv$type <- as.factor(combined_data_inv$type)
+
+# Plot
+ggplot(combined_data_inv, aes(x = Monthly, y = value, color = type)) +
+  geom_line() +
+  theme_minimal() +
+  ggtitle("Housing Inventory (SJ-SV-SC): Training and Testing Sets") +
+  labs(x = "Monthly", y = "# of Houses") +
+  theme(plot.title = element_text(hjust = 0.5)) + labs(subtitle = "Over-estimates more than ARIMA 210210")+ theme(plot.title = element_text(family = "serif", hjust = 0.5)) + theme(plot.subtitle = element_text(family = "serif", hjust = 0.5))
+
+
+
+
+
+```
+
+This is an eighty-percent split between training data, and testing data. We employ this in our research
+
+**Stationarity Tests (Original Data was already Stationary Enough)**
+
+```{r, include=TRUE}
+unitroot_kpss(ts_inventory_SJ_SV_SC$value)
+
+# First Difference and KPSS test
+diff_inventory_sj_sv_sc <- ts_inventory_SJ_SV_SC$value %>% difference(12) 
+unitroot_kpss(diff_inventory_sj_sv_sc)
+```
+
+```{r, fig.align='center', echo=TRUE,message=FALSE,warning=FALSE}
+
+
+
+# Autocorrelation Plots
+ts_inventory_SJ_SV_SC %>% 
+  gg_tsdisplay((ts_inventory_SJ_SV_SC$value), plot_type="partial") + 
+  ggtitle("Residual plot of Inventory Data SJ-SV-SC (KPSS =.10)") + 
+  labs(subtitle = "When Comparing to first difference there is no difference in stationarirty") + ylab("")
+
+# First Difference Plots
+#ts_inventory_SJ_SV_SC %>% autoplot(
+ # ts_inventory_SJ_SV_SC$value %>% difference(12)) + 
+  #ggtitle("First Difference Inventory Data SJ-SV-SC (KPSS = .10)") + stat_smooth(method = "lm") 
+
+
+
+# Autocorrelation Plots
+#ts_inventory_SJ_SV_SC %>% 
+ # gg_tsdisplay((ts_inventory_SJ_SV_SC$value)%>% difference(lag=12), plot_type="partial")
+```
+
+The ACF plot is sinusoidal, Two significant spikes in the PACF plot. One spike outside seasonal
+
+AR 2 Model, with no differences:
+
+-   AR(2,0,0)
+
+We employ an Auto ARIMA as well, providing us with a model:
+
+-   ARIMA(2,0,0)(1,1,0)
+
+**Training Data, Stationarity & Models**
+
+```{r, fig.align='center', echo=TRUE,message=FALSE,warning=FALSE}
+
+
+# Plot
+ggplot(train_df_inv, aes(x = Monthly, y = value, color = type)) +
+  geom_line() +
+  theme_minimal() +
+  ggtitle("Training Data Inventory (SJ-SV-SC)") +  labs(x = "Quarter", y = "Inventory", subtitle = "KPSS = .10") +
+  theme(plot.title = element_text(hjust = 0.5))+ theme(plot.title = element_text(family = "serif", hjust = 0.5)) + stat_smooth(mehtod = "lm")+ theme(plot.subtitle = element_text(family = "serif", hjust = 0.5))
+
+acf(train_df_inv$value, lag.max = 24, main = "Autocorrelation Plots")
+pacf(train_df_inv$value, lag.max = 24, main = "Partial Autocorrelation Plots")
+
+```
+
+Thus the plot guide us to an ARIMA(2, d, 0): If the ACF plot shows a significant spike at lag 2 and the PACF plot shows significant spikes at lags 1 and 2, an ARIMA(2, d, 0) model might be suitable. This indicates that there is an auto-regressive component with lag 1 and 2. Moreover, we do not difference this data so d=0.
+
+-   ARIMA(2,0,0) should be used for the forecast of training data.
+
+An auto ARIMA function aligns with our findings. An interesting note, the model derived from the original, full-sample, data-set also produced an ARIMA(2,0,0).
+
+```{r, fig.align='center', echo=TRUE,message=FALSE,warning=FALSE, include=TRUE}
+auto.arima(train_df_inv$value)
+
+
+```
+
+**Forecasts**
+
+```{r, fig.align='center', echo=TRUE,message=FALSE,warning=FALSE, include=TRUE}
+
+
+auto.arima(ts_inventory_SJ_SV_SC)
+
+
+fit_train_inventory_200 <- train_ts_inventory_SJ_SV_SC %>%
+    model(ARIMA(value ~ pdq(2,0,0)+ PDQ(0,0,0)))
+report(fit_train_inventory_200)
+
+
+fit_train_inventory_200110 <- train_ts_inventory_SJ_SV_SC %>%
+    model(ARIMA(value ~ pdq(2,0,0) + PDQ(1,1,0)))
+report(fit_train_inventory_200110)
+
+fit_inventory_200110 <- ts_inventory_SJ_SV_SC %>%
+    model(ARIMA(value ~ pdq(2,0,0) + PDQ(1,1,0)))
+report(fit_inventory_200110)
+
+fit_inventory_200 <- ts_inventory_SJ_SV_SC %>%
+    model(ARIMA(value ~ pdq(2,0,0) + PDQ(0,0,0)))
+report(fit_inventory_200)
+
+```
+
+**Plotting ARIMA Forecasts & Test Set for Accuracy**
+
+**Accuracy Test**
+
+```{r, warning=FALSE, echo=TRUE,  message=FALSE,fig.align='center'}
+
+
+fit_train_inventory_200_forecast <- forecast(fit_train_inventory_200, h = "16 months")
+
+
+fit_train_inventory_200110_forecast <- forecast(fit_train_inventory_200110, h = "16 months")
+
+
+
+
+fit_train_inventory_200_forecast %>%
+  autoplot(ts_inventory_SJ_SV_SC) + xlab("Time") + ylab("Inventory") + ggtitle("Inventory Original Data and Forecasts (ARIMA200)")+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+
+
+fit_train_inventory_200110_forecast %>%
+  autoplot(ts_inventory_SJ_SV_SC) + xlab("Time") + ylab("Inventory") + ggtitle("Inventory Original Data and Forecasts (ARIMA200110)")+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+
+
+
+
+fit_inventory_200_forecast <- forecast(fit_inventory_200, h = "2 years")
+
+
+
+
+fit_inventory_200110_forecast_full <- forecast(fit_inventory_200110, h = "2 years")
+
+
+```
+
+```{r, warning=FALSE, echo=TRUE,  message=FALSE,fig.align='center'}
+
+# Drop NA months from test_ts_inventory_SJ_SV_SC
+test_ts_inventory_SJ_SV_SC <- na.omit(test_ts_inventory_SJ_SV_SC)
+
+fit_train_inventory_200_forecast %>%
+  autoplot(test_ts_inventory_SJ_SV_SC) + xlab("Time") + ylab("Inventory") + ggtitle("Inventory Test Data and Forecasts (ARIMA200)")+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+
+
+fit_train_inventory_200110_forecast %>%
+  autoplot(test_ts_inventory_SJ_SV_SC) + xlab("Time") + ylab("Inventory") + ggtitle("Inventory Test Data and Forecasts (ARIMA200110)")+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+```
+
+Given the visualization and AIC analysis, the ARIMA(2,0,0)(1,1,0) seems to more accurately forecast the reality of housing inventory. 
+
+**Residual Diagnostic Tests, Full-Sample, Determining The Best Model**
+
+In order to determine which model we prefer, we run through residual tests in order to see what model should be employed for the full-sample forecast. 
+
+**ARIMA(2,0,0)**
+
+```{r, warning=FALSE, echo=TRUE,  message=FALSE,fig.align='center'}
+fit_inventory_200%>%
+  gg_tsresiduals()
+
+```
+
+-   2 significant spike in ACF, There might be a better type of forecast
+
+**ARIMA(2,0,0)(1,1,0)**
+
+```{r,fig.align='center', echo=TRUE,message=FALSE,warning=FALSE}
+
+fit_inventory_200110 %>%
+  gg_tsresiduals()
+
+```
+
+ARIMA200110 is the best model utilized, histogram is most normal, residuals are fairly normalized, and there is white noise.
+
+-   ARIMA200110 is our preferred model.
+
+**Forecast**
+
+```{r, warning=FALSE, echo=TRUE,  message=FALSE,fig.align='center'}
+
+
+#auto.arima(ts_inventory_SJ_SV_SC)
+
+
+
+
+
+#fit_train_AUTO_ARIMA212100_hpi_forecast <- forecast(fit_train_AUTO_ARIMA212100, h = "5 years")
+
+
+
+
+fit_inventory_200_forecast %>%
+  autoplot(ts_inventory_SJ_SV_SC) + xlab("Time") + ylab("Housing Inventory") + ggtitle("Forecast of Inventory Data (ARIMA200)")+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+
+```
+
+
+**Preferred Model ARIMA(2,0,0)(1,1,0)**
+
+```{r, warning=FALSE, echo=TRUE,  message=FALSE,fig.align='center'}
+
+
+fit_inventory_200110_forecast_full %>%
+  autoplot(ts_inventory_SJ_SV_SC) + xlab("Time") + ylab("Housing Inventory") + ggtitle("Forecast of Inventory Data (ARIMA200110)")+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+```
+
+**Broader Implications**
+
+Our forecasts determine that housing inventory withing the silicon valley MSA will most likely stay stable, with seasonal periods. The forecast of a stable housing inventory suggests that the supply of houses in the market is expected to remain steady. This could be due to a balance between new houses being built and old houses being sold or taken off the market. A stable supply could help prevent drastic fluctuations in housing prices.
+
+## Market Hotness
+
+**Overview & Synopsis:**
+
+The Market Hotness index is calculated based on various factors such as the number of views per property on real estate websites, the number of days a property is listed before it is sold, and the change in the median listing price. A higher Market Hotness index indicates a higher demand for properties, suggesting a seller's market where sellers have the upper hand due to increased competition among buyers. Conversely, a lower Market Hotness index indicates a buyer's market where buyers have more options and may have more negotiating power. Number of Observations: 69 (Monthly)
+
+Range of data: 2017-08-01 to 2023-04-01 (San Jose, Sunnyvale, and Santa Clara)
+
+Range of Values: 1.338 (Not so hot), 95.652 (Very Hot)
+
+Trends: Decreasing Trend across the last six years.
+
+Seasonality: Market Hotness peaks in January and June
+
+Cycles: No cycles could be identified.
+
+**Original Plots and Important Figures**
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+
+
+
+ts_market_hotness_SJ_SV_SC %>% autoplot(
+  ts_market_hotness_SJ_SV_SC$value) + ggtitle("Market Hotness, San Jose, Sunnyvale, Santa Clara") + stat_smooth(method = "lm")+
+  theme(axis.title.y = element_blank())  +
+  theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+
+
+gg_tsdisplay(ts_market_hotness_SJ_SV_SC) 
+
+
+
+
+```
+
+
+
+**Plotting Training Data (For ARIMA Accuracy)**
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+# Calculate the row to split on
+split_row <- round(nrow(ts_market_hotness_SJ_SV_SC) * 0.8)
+
+# Split the data
+train_ts_market_hotness_SJ_SV_SC <- ts_market_hotness_SJ_SV_SC[1:split_row, ]
+test_ts_market_hotness_SJ_SV_SC <- ts_market_hotness_SJ_SV_SC[(split_row + 1):nrow(ts_market_hotness_SJ_SV_SC), ]
+
+# Create a new column 'type' in both train and test sets
+train_ts_market_hotness_SJ_SV_SC$type <- "Training"
+test_ts_market_hotness_SJ_SV_SC$type <- "Testing"
+
+# Convert these tsibble objects back to regular data frames for binding and plotting
+train_df_hotness <- as_tibble(train_ts_market_hotness_SJ_SV_SC)
+test_df_hotness <- as_tibble(test_ts_market_hotness_SJ_SV_SC)
+
+# Combine the training and test sets
+combined_data_hotness <- bind_rows(train_df_hotness, test_df_hotness)
+
+# Convert type column to factor
+combined_data_hotness$type <- as.factor(combined_data_hotness$type)
+
+# Plot
+ggplot(combined_data_hotness, aes(x = Monthly, y = value, color = type)) +
+  geom_line() +
+  theme_minimal() +
+  ggtitle("Market Hotness (SJ-SV-SC): Training and Testing Sets") +
+  labs(x = "Monthly", y = "Market Hotness Score") +
+  theme(plot.title = element_text(hjust = 0.5))  +
+  theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+```
+
+**Differeneced Data For Stationarity (Full-Sample)**
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+
+ts_market_hotness_SJ_SV_SC %>% autoplot(
+  ts_market_hotness_SJ_SV_SC$value %>% difference(12)) + 
+  ggtitle("First Difference Market Hotness SJ-SV-SC") + stat_smooth(method = "lm") +labs(y=" ")  +
+  theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+ts_market_hotness_SJ_SV_SC %>% autoplot(
+  ts_market_hotness_SJ_SV_SC$value %>% difference(12)%>%difference()) + 
+  ggtitle("Second Difference Market Hotness SJ-SV-SC") + stat_smooth(method = "lm")+labs(y=" ")   +
+  theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+ts_market_hotness_SJ_SV_SC %>% 
+  gg_tsdisplay((ts_market_hotness_SJ_SV_SC$value)%>% difference(lag=12)%>%difference(), plot_type="partial") + labs(y=" ")
+
+```
+
+The residual plot of the stationary data (second difference), indicates that there are three significant lags in the ACF plot at lags 1, 2, 3. Additionally, there are two significant spikes at lags 8 and 12 in the ACF lot. 
+
+When viewing the PACF plot, there is 1 significant spike at lag 1, and 1 spike at lag 12.
+
+Based on the description of the ACF and PACF plots for the second difference, it suggests that there are significant spikes at lags 1, 2, and 3 in the ACF plot for the non-seasonal component. This indicates the presence of autoregressive (AR) terms. Additionally, there are significant spikes at lags 8 and 12 in the ACF plot for the seasonal component, suggesting the presence of seasonal AR terms.
+
+In the PACF plot, there is a significant spike at lag 1 for the non-seasonal component, indicating the presence of a moving average (MA) term. There is also a spike at lag 12 for the seasonal component, suggesting the presence of a seasonal MA term.
+
+Therefore, based on the ACF and PACF plots, a possible ARIMA model for the second difference could be ARIMA(0, 1, 1)(0, 1, 1)[12] or ARIMA(3, 1, 0)(1, 1, 0)[12].
+
+The auto ARIMA function suggest a different model: ARIMA(1,1,1)(1,1,0).
+
+**Differenced Data (Restricting to Training Data)**
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+
+
+# Plot
+ggplot(train_df_hotness, aes(x = Monthly, y = value, color = type)) +
+  geom_line() +
+  theme_minimal() +
+  ggtitle("Market Hotness (SJ-SV-SC)") +
+  labs(x = "Monthly", y = "Market Hotness Index") +
+  theme(plot.title = element_text(hjust = 0.5))+ theme(plot.title = element_text(family = "serif", hjust = 0.5)) + stat_smooth(mehtod = "lm")
+
+diff_train_df_hotness <- diff(train_df_hotness$value, lag = 1)
+
+unitroot_kpss(diff_train_df_hotness)
+
+
+# Create a new data frame for plotting
+plot_data <- data.frame(Monthly = train_df_hotness$Monthly[-1], Difference = diff_train_df_hotness)
+
+# Plot First Difference
+ggplot(data = plot_data, aes(x = Monthly, y = Difference)) +
+  geom_line() +
+  theme_minimal() +
+  ggtitle("First Difference of Market Hotness (SJ-SV-SC)") +
+  labs(x = "Monthly", y = "First Difference", subtitle = "KPSS = .10") +
+  theme(plot.title = element_text(family = "serif", hjust = 0.5)) + theme(plot.title = element_text(family = "serif", hjust = 0.5)) + stat_smooth(method = "lm") 
+
+acf(diff_train_df_hotness, lag.max = 24, main = "Autocorrelation Plots")
+pacf(diff_train_df_hotness, lag.max = 24, main = "Partial Autocorrelation Plots")
+```
+
+
+The ACF plot shows significant spikes at lags 1, 2, and 6, indicating the presence of autocorrelation at these lags. The slightly sinusoidal pattern suggests possible seasonality in the data.
+
+The PACF plot shows a significant spike at lag 1, indicating the presence of an autoregressive (AR) term. The spikes at lags 5 and 6 in the PACF plot suggest the need for additional autoregressive terms.
+
+Based on these findings, an appropriate ARIMA model for the data could be ARIMA(p, 1, q), where p represents the order of the autoregressive component and q represents the order of the moving average component. In this case, a possible model specification could be ARIMA(2, 1, 0) taking into consideration the significant spikes in the ACF and PACF plots.
+
+The Auto-Arima function reccommends an ARIMA(1,1,0) model.
+
+
+**Forecasts (Training Data)**
+
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center', include=TRUE}
+
+
+#auto.arima(ts_market_hotness_SJ_SV_SC)
+
+fit_hotmark_210 <- train_ts_market_hotness_SJ_SV_SC %>%
+    model(ARIMA(value ~ pdq(2,1,0) + PDQ(0,0,0)))
+report(fit_hotmark_210)
+
+fit_hotmark_111 <- train_ts_market_hotness_SJ_SV_SC %>%
+    model(ARIMA(value ~ pdq(1,1,1) + PDQ(0,0,0)))
+report(fit_hotmark_111)
+
+fit_hotmark_011 <- train_ts_market_hotness_SJ_SV_SC %>%
+    model(ARIMA(value ~ pdq(0,1,1) + PDQ(0,1,1)))
+report(fit_hotmark_111)
+
+fit_hotmark_310 <- train_ts_market_hotness_SJ_SV_SC %>%
+    model(ARIMA(value ~ pdq(3,1,0) + PDQ(1,1,0)))
+report(fit_hotmark_310)
+
+
+fit_hotmark_011_forecast <- forecast(fit_hotmark_011, h = "14 months")
+fit_hotmark_210_forecast <- forecast(fit_hotmark_210, h = "14 months")
+fit_hotmark_111_forecast <- forecast(fit_hotmark_111, h = "14 months")
+fit_hotmark_310_forecast <- forecast(fit_hotmark_310, h = "14 months")
+
+#fit_train_AUTO_ARIMA212100_hpi_forecast <- forecast(fit_train_AUTO_ARIMA212100, h = "5 years")
+
+
+```
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+
+fit_hotmark_011_forecast %>%
+  autoplot(test_ts_market_hotness_SJ_SV_SC) + xlab("Time") + ylab("Market Hotness") + ggtitle("Forecast of Inventory Data, Restricted to Test (ARIMA011)")+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+fit_hotmark_111_forecast %>%
+  autoplot(test_ts_market_hotness_SJ_SV_SC) + xlab("Time") + ylab("Market Hotness") + ggtitle("Forecast of Inventory Data, Restricted to Test (ARIMA111)")+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+
+fit_hotmark_210_forecast %>%
+  autoplot(test_ts_market_hotness_SJ_SV_SC) + xlab("Time") + ylab("Market Hotness") + ggtitle("Forecast of Inventory Data, Restricted to Test (ARIMA210)")+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+
+fit_hotmark_310_forecast %>%
+  autoplot(test_ts_market_hotness_SJ_SV_SC) + xlab("Time") + ylab("Market Hotness") + ggtitle("Forecast of Inventory Data, Restricted to Test (ARIMA310)")+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+```
+
+
+Given the training data, ARIMA210 & ARIMA111 are indistinguishable from one another. Moreover, while these models do not follow the trend, tand produce steady predictions. Yet, these models still predict better than ARIMA310--ARIMA310 flows the trend, but only captures observations in its confidence interval. ARIMA210, does not seem to account for seasonal changes, but is closest in its predictions to reality. We will analyze the Residual plots in the following section to determine the best model between ARIMA110 and ARIMA210. These results are interesting as ARIMA310 produced the lowest AIC results.
+
+
+**Residual Plots (Determining the best Model, Training Data)**
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+
+gg_tsresiduals(fit_hotmark_210)
+
+```
+**ARIMA310 Residual Plot**
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+
+gg_tsresiduals(fit_hotmark_310)
+```
+
+
+**ARIMA011 Residual Plot**
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+gg_tsresiduals(fit_hotmark_011)
+```
+
+All forecast models except ARIMA310, produces no white noise, thus given this we declare ARIMA310 as our employed forecast. Moreover, this Model had the lowest AIC.
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center', include=TRUE}
+fit_hotmark_210_full <- ts_market_hotness_SJ_SV_SC %>%
+    model(ARIMA(value ~ pdq(2,1,0) + PDQ(0,0,0)))
+report(fit_hotmark_210_full)
+
+fit_hotmark_111_full <- ts_market_hotness_SJ_SV_SC %>%
+    model(ARIMA(value ~ pdq(1,1,1) + PDQ(0,0,0)))
+report(fit_hotmark_111_full)
+
+fit_hotmark_011_full <- ts_market_hotness_SJ_SV_SC %>%
+    model(ARIMA(value ~ pdq(0,1,1) + PDQ(0,1,1)))
+report(fit_hotmark_011_full)
+
+fit_hotmark_310_full <- ts_market_hotness_SJ_SV_SC %>%
+    model(ARIMA(value ~ pdq(3,1,0) + PDQ(1,1,0)))
+report(fit_hotmark_310_full)
+
+
+fit_hotmark_110_forecast_full <- forecast(fit_hotmark_210_full, h = "14 months")
+fit_hotmark_111_forecast_full <- forecast(fit_hotmark_111_full, h = "14 months")
+fit_hotmark_011_forecast_full <- forecast(fit_hotmark_011_full, h = "14 months")
+fit_hotmark_310_forecast_full <- forecast(fit_hotmark_310_full, h = "14 months")
+```
+
+**Forecasts**
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+
+fit_hotmark_110_forecast_full %>%
+  autoplot(ts_market_hotness_SJ_SV_SC) + xlab("Time") + ylab("Market Hotness") + ggtitle("Forecast of Inventory Data, Restricted to Test (ARIMA110)")+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+fit_hotmark_111_forecast_full %>%
+  autoplot(ts_market_hotness_SJ_SV_SC) + xlab("Time") + ylab("Market Hotness") + ggtitle("Forecast of Inventory Data, Restricted to Test (ARIMA111)")+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+
+fit_hotmark_011_forecast_full %>%
+  autoplot(ts_market_hotness_SJ_SV_SC) + xlab("Time") + ylab("Market Hotness") + ggtitle("Forecast of Inventory Data, Restricted to Test (ARIMA011)")+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+
+```
+
+**Preferred Forecast (ARIMA310)**
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+fit_hotmark_310_forecast_full %>%
+  autoplot(ts_market_hotness_SJ_SV_SC) + xlab("Time") + ylab("Market Hotness") + ggtitle("Forecast of Inventory Data, Restricted to Test (ARIMA310)")+ theme(plot.title = element_text(family = "serif", hjust = 0.5))
+```
+
+
+**Residual Plots (Full-Sample)**
+
+**ARIMA011**
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+gg_tsresiduals(fit_hotmark_310_full)
+```
+
+
+**ARIMA310 (Preferred Model)**
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+gg_tsresiduals(fit_hotmark_310_full)
+```
+
+-   White noise, however residual plot is more normal.
+
+-   We employ ARIMA310 as our best model however, due to a lower AIC score and more normal Residual plot.
+
+
+**Broader Implications**
+
+Decreasing Market Hotness: The decreasing trend in market hotness indicates that demand for houses may be cooling off. This could be due to a variety of factors, such as changes in economic conditions, demographic shifts, or changes in housing preferences. A decrease in demand could potentially lead to a slowdown in housing price growth.
+
+# Housing Inventory & Market Hotness (VAR Tests)
+
+In this section, we aim to test a Vector Autoregressive (VAR) model for housing inventory and market hotness to assess its potential accuracy in forecasting. We create a forecast from the training data and compare that to figures of the orignal plot. 
+
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+
+library(ggplot2)
+library(cowplot)
+
+# Convert market hotness and inventory data frames to tibbles
+df_market_hotness <- as_tibble(ts_market_hotness_SJ_SV_SC)
+df_inventory <- as_tibble(ts_inventory_SJ_SV_SC)
+
+# Rename the date column if necessary
+colnames(df_market_hotness)[1] <- "Date"
+colnames(df_inventory)[1] <- "Date"
+
+# Merge data frames based on the common Date column
+merged_df <- merge(df_market_hotness, df_inventory, by = "Date")
+
+# Plot with free scales and facets for Market Hotness
+plot_market_hotness <- ggplot(merged_df) +
+  geom_line(aes(x = Date, y = value.x, color = "Market Hotness")) +
+  labs(x = "Date", y = NULL, color = NULL) +
+  scale_color_manual(values = c("Market Hotness" = "blue", "Inventory" = "red")) +
+  facet_grid(. ~ ., scales = "free_y") +
+  theme_minimal() +
+  theme(strip.text = element_blank())
+
+# Plot with free scales and facets for Inventory
+plot_inventory <- ggplot(merged_df) +
+  geom_line(aes(x = Date, y = value.y, color = "Inventory")) +
+  labs(x = "Date", y = NULL, color = NULL) +
+  scale_color_manual(values = c("Market Hotness" = "blue", "Inventory" = "red")) +
+  facet_grid(. ~ ., scales = "free_y") +
+  theme_minimal() +
+  theme(strip.text = element_blank())
+
+# Combine the plots into a matrix with aligned x-axis
+plot_matrix <- plot_grid(plot_market_hotness, plot_inventory, nrow = 2, align = "hv")
+
+# Display the plot matrix
+plot_matrix + labs(title = "Market Hotness and Housing Inventory")
+
+
+```
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center', include=TRUE}
+
+# Rename columns in merged_df
+merged_df_rename <- merged_df %>% rename("Market Hotness" = value.x, "Inventory" = value.y)
+
+
+
+merged_df_difference <- merged_df_rename %>% mutate(
+  `Market Hotness_diff` = `Market Hotness` - lag(`Market Hotness`),
+  `Inventory_diff` = `Inventory` - lag(`Inventory`)
+)
+
+# Drop the first row with NA values due to differencing
+merged_df_final <- merged_df_difference[-1,]
+
+# Calculate the row to split on
+split_row <- round(nrow(merged_df_final) * 0.8)
+
+# Split the data
+htrain  <- merged_df_final[1:split_row, ]
+htest <- merged_df_final[(split_row + 1):nrow(merged_df_final), ]
+```
+
+
+**Differenced Market Hotness With Inventory**
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+
+ggplot(htrain, aes(x = Date, y = `Market Hotness_diff`)) +
+  geom_line() +
+  labs(x = "Date", y = "Market Hotness Difference") +
+  ggtitle("Differenced Market Hotness (Training Set)")
+
+ggplot(htrain, aes(x = Date, y = `Inventory_diff`)) +
+  geom_line() +
+  labs(x = "Date", y = "Inventory Difference") +
+  ggtitle("Differenced Inventory (Training Set)")
+
+```
+
+
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+
+# Create the plot for Market Hotness
+plot_market_hotness <- ggplot(htrain, aes(x = Date, y = `Market Hotness_diff`)) +
+  geom_line(color = "blue") +
+  labs(x = "Date", y = "Market Hotness Difference") +
+  ggtitle("Differenced Market Hotness (Training Set)")
+
+# Create the plot for Inventory
+plot_inventory <- ggplot(htrain, aes(x = Date, y = `Inventory_diff`)) +
+  geom_line(color = "red") +
+  labs(x = "Date", y = "Inventory Difference") +
+  ggtitle("Differenced Inventory (Training Set)")
+
+# Arrange the plots in a single panel
+overlay_plot <- plot_grid(plot_market_hotness, plot_inventory, nrow = 2)
+
+# Display the overlay plot
+print(overlay_plot)
+
+```
+
+From the differenced data, it almost seems that inventory is a leading indicator to market hotness.
+
+```{r, include=TRUE}
+library(vars)
+
+htrain_diff <- htrain[, c("Date", "Market Hotness_diff", "Inventory_diff")]
+
+
+htrain_diff_ts <- ts(htrain_diff[, -1], start = c(2017, 8), frequency = 12)
+
+
+# Fit VAR model
+vareq <- VAR(htrain_diff_ts, lag.max = 25, season = 12, ic = "AIC")
+summary(vareq)
+
+```
+```{r, warning=FALSE, message=FALSE, echo=TRUE, fig.align='center'}
+varfc <- forecast(vareq, h = length(htest[,1]))
+
+varfc %>% autoplot() + xlab("Time") +
+ggtitle("Forecasts: change in Inventory and Market Hottness from a VAR(9) model")
+
+
+```
+
