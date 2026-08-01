@@ -7,25 +7,20 @@
 <meta name="description" content="How the cost of EV charging varies across the United States: effects of region, facility type, charging network, variable cost, supply and demand. Marco Ruffinelli-Ojeda, San Francisco State University, 2022.">
 <style>
   :root {
-    --paper:  #F7F5F1;
-    --panel:  #EEEBE4;
+    --paper:  #FFFFFF;
+    --panel:  #F1F0F6;
     --ink:    #171622;
-    --ink-2:  #4C4A5C;
-    --ink-3:  #6B6879;
-    --rule:   #DEDAD3;
+    --ink-2:  #494758;
+    --ink-3:  #66647A;
+    --rule:   #E3E1EB;
     --accent: #404478;
     --accent-2: #836EA8;
-    --plate-bg: #FFFFFF;
     --serif: "Palatino Linotype", "Book Antiqua", Palatino, "Iowan Old Style", "Hoefler Text", Georgia, serif;
     --mono: "Cascadia Mono", "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --paper: #121119; --panel: #1A1926; --ink: #E7E5EE;
-      --ink-2: #A6A3B6; --ink-3: #85829A; --rule: #2B2A3A;
-      --accent: #9C8FD0; --accent-2: #B4A6DE; --plate-bg: #ECEAF2;
-    }
-  }
+  /* Single light theme, deliberately. Every figure is a white-ground plot export,
+     so the page matches the plates and the figures carry no visible edge. */
+  :root { color-scheme: light only; }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
@@ -73,7 +68,7 @@
 
   /* ---- figure plates ---- */
   figure.plate { margin: 2.25rem 0; }
-  figure.plate .frame { background: var(--plate-bg); padding: .75rem; overflow-x: auto; }
+  figure.plate .frame { overflow-x: auto; }
   figure.plate img { display: block; max-width: 100%; height: auto; margin: 0 auto; }
   figure.plate.wide img { max-width: none; width: auto; }
   figure.plate figcaption { margin-top: .75rem; font-family: var(--mono); font-size: .6875rem; line-height: 1.7; color: var(--ink-3); }
