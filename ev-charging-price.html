@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Economic Analysis of Electric Vehicle Charging Price</title>
+<meta name="description" content="How the cost of EV charging varies across the United States: effects of region, facility type, charging network, variable cost, supply and demand. Marco Ruffinelli-Ojeda, San Francisco State University, 2022.">
+<style>
+  :root {
+    --paper:  #F7F6F3;
+    --panel:  #EFEDE8;
+    --ink:    #1A1A18;
+    --ink-2:  #4E4E48;
+    --ink-3:  #6E6E66;
+    --rule:   #DAD7CF;
+    --accent: #245A62;
+    --serif: "Palatino Linotype", "Book Antiqua", Palatino, "Iowan Old Style", "Hoefler Text", Georgia, serif;
+    --mono: "Cascadia Mono", "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #14150F; --panel: #1C1D16; --ink: #E6E4DA;
+      --ink-2: #A9A79B; --ink-3: #8A8880; --rule: #2E2F26; --accent: #7FBDC4;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--serif); font-size: 1.0625rem; line-height: 1.66;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .wrap { max-width: 74rem; margin: 0 auto; padding: 0 1.75rem; }
+  .layout { display: block; }
+
+  /* ---- title block ---- */
+  header.title { padding: 5rem 0 0; max-width: 40rem; }
+  h1 {
+    font-weight: 400; font-size: clamp(2rem, 4.6vw, 2.9rem); line-height: 1.14;
+    letter-spacing: -.01em; margin: 0; text-wrap: balance;
+  }
+  .authors { margin: 1.5rem 0 0; font-size: 1.0625rem; color: var(--ink-2); }
+  .authors strong { font-weight: 400; color: var(--ink); }
+  .abstract {
+    margin: 2.25rem 0 0; padding: 1.5rem 1.75rem; background: var(--panel);
+    font-size: 1rem; line-height: 1.6;
+  }
+  .abstract p { margin: 0; }
+  .abstract p + p { margin-top: .9em; }
+  .abstract .lbl {
+    display: block; font-family: var(--mono); font-size: .6875rem;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--accent);
+    margin: 0 0 .75rem;
+  }
+
+  /* ---- toc + body ---- */
+  main { padding: 3.5rem 0 7rem; }
+  nav.toc { margin: 0 0 3rem; }
+  nav.toc h2 {
+    font-family: var(--serif); font-style: italic; font-weight: 400;
+    font-size: 1rem; color: var(--ink-2); margin: 0 0 .75rem;
+  }
+  nav.toc ol { margin: 0; padding: 0 0 0 1.25rem; }
+  nav.toc li { margin: .3rem 0; }
+  nav.toc a { color: var(--ink-2); text-decoration: none; }
+  nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent); text-decoration: underline; }
+  nav.toc a.here { color: var(--ink); }
+
+  article { max-width: 40rem; }
+  article h2 {
+    font-weight: 400; font-size: 1.55rem; line-height: 1.22; letter-spacing: -.004em;
+    margin: 3.5rem 0 1.1rem; scroll-margin-top: 1.5rem; text-wrap: balance;
+  }
+  article h2:first-child { margin-top: 0; }
+  article h3 {
+    font-weight: 400; font-style: italic; font-size: 1.1875rem;
+    margin: 2.25rem 0 .7rem; color: var(--ink);
+  }
+  article p { margin: 1.15em 0; }
+  article ul { margin: 1.15em 0; padding-left: 1.3rem; }
+  article li { margin: .4em 0; }
+
+  .lit { margin: 1.5em 0; padding: 0; list-style: none; display: grid; gap: 1.5rem; }
+  .lit > li { margin: 0; }
+  .lit .t { font-style: italic; }
+  .lit dl { margin: .45rem 0 0; display: grid; grid-template-columns: 6.5rem 1fr; gap: .3rem 1rem; font-size: .96rem; }
+  .lit dt { font-family: var(--mono); font-size: .6875rem; letter-spacing: .04em; color: var(--ink-3); padding-top: .35em; }
+  .lit dd { margin: 0; color: var(--ink-2); }
+  @media (max-width: 34rem) { .lit dl { grid-template-columns: 1fr; gap: .1rem; } }
+
+  .eq {
+    margin: 1.4em 0; padding: 1.1rem 1.25rem; background: var(--panel);
+    font-family: var(--mono); font-size: .8125rem; line-height: 1.7; overflow-x: auto;
+  }
+  .eq .name { display: block; color: var(--accent); margin-bottom: .45rem; font-size: .6875rem; letter-spacing: .08em; text-transform: uppercase; }
+
+  /* ---- regression table ---- */
+  .tbl-wrap { overflow-x: auto; margin: 1.75em 0; }
+  table.reg { border-collapse: collapse; font-family: var(--mono); font-size: .78rem; min-width: 30rem; width: 100%; }
+  table.reg caption {
+    caption-side: top; text-align: left; font-family: var(--serif); font-style: italic;
+    font-size: 1rem; color: var(--ink-2); margin-bottom: .9rem;
+  }
+  table.reg th, table.reg td { padding: .34rem .6rem; text-align: right; font-weight: 400; vertical-align: baseline; }
+  table.reg th.term, table.reg td.term { text-align: left; padding-left: 0; white-space: nowrap; }
+  table.reg thead th { color: var(--ink-3); font-size: .6875rem; border-bottom: 1px solid var(--rule); padding-bottom: .6rem; }
+  table.reg td { font-variant-numeric: tabular-nums; }
+  table.reg tr.se td { color: var(--ink-3); padding-top: 0; padding-bottom: .5rem; }
+  table.reg tr.const td { border-top: 1px solid var(--rule); padding-top: .7rem; }
+  table.reg td.na { color: var(--ink-3); }
+  .tbl-note { font-family: var(--mono); font-size: .6875rem; line-height: 1.6; color: var(--ink-3); margin: .85rem 0 0; }
+
+  .missing {
+    margin: 1.6em 0; padding: 1rem 1.25rem; background: var(--panel);
+    font-family: var(--mono); font-size: .75rem; line-height: 1.65; color: var(--ink-3);
+  }
+  .missing strong { color: var(--accent); font-weight: 400; }
+
+  footer.paper {
+    margin-top: 5rem; padding-top: 2rem; border-top: 1px solid var(--rule);
+    font-family: var(--mono); font-size: .75rem; line-height: 1.75; color: var(--ink-3);
+    max-width: 46rem;
+  }
+  footer.paper a { color: var(--ink-2); }
+
+  a { color: var(--accent); text-underline-offset: .16em; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  ::selection { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+
+  @media (min-width: 60rem) {
+    .layout { display: grid; grid-template-columns: 15rem 1fr; gap: 4rem; align-items: start; }
+    nav.toc { position: sticky; top: 2.5rem; margin: 0; }
+    main { padding-top: 4rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="title">
+    <h1>Economic Analysis of Electric Vehicle Charging Price</h1>
+    <p class="authors"><strong>Marco Ruffinelli-Ojeda</strong><br>San Francisco State University &middot; 2022</p>
+    <div class="abstract">
+      <span class="lbl">Abstract</span>
+      <p>This research seeks to understand how the cost of EV charging varies around the United
+        States. We find significant and substantial effects for geographic region, facility type,
+        charging network, and for measures of variable cost (electricity), supply (number of
+        charging cables), and demand (vehicle miles traveled).</p>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Table of contents">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#introduction">Introduction</a></li>
+        <li><a href="#literature">Literature Review</a></li>
+        <li><a href="#question">Research Question &amp; Addition to Literature</a></li>
+        <li><a href="#limitations">Limitations &amp; Constraints</a></li>
+        <li><a href="#variables">Description of Variables</a></li>
+        <li><a href="#models">Models</a></li>
+        <li><a href="#results">Results</a></li>
+        <li><a href="#conclusion">Conclusion &amp; Further Research</a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <article>
+
+        <h2 id="introduction">1. Introduction</h2>
+        <p>In the last decade the infrastructure for electric vehicle (EV) charging experienced
+          enormous growth. Yet, there still exists a scarcity of EV infrastructure.</p>
+        <p>Most EVs are charged at homes. EV owners find it inconvenient to go to commercial
+          charging stations, often due to a lack of charger availability.</p>
+        <p>This research seeks to understand how the cost of EV charging varies around the United
+          States. We find significant and substantial effects for geographic region, facility
+          type, charging network, and for measures of variable cost (electricity), supply (number
+          of charging cables), and demand (vehicle miles traveled).</p>
+
+        <h3>Why this matters</h3>
+        <p><strong>I. Electric vehicles represent the future of driving.</strong> We are entering a
+          tipping point at 5 to 10 percent of new automotive sales, expected to reach 25 percent in
+          three to five years. Auto manufacturers are aligning their infrastructure to develop more
+          EVs.</p>
+        <p><strong>II. Climate change.</strong> Transportation accounts for 14 percent of global
+          emissions (EPA, 2010). Driving accounts for 45 percent of transportation emissions (IEA,
+          2018). Automotives therefore contribute roughly 6 percent of total global emissions, and
+          constitute 15 percent of total U.S. emissions.</p>
+        <p><strong>III. Other motivations.</strong> EVs promote cleaner air and fewer
+          pollutant-related deaths. And gas prices are too damn high.</p>
+
+        <h2 id="literature">2. Literature Review</h2>
+        <ul class="lit">
+          <li>
+            <p class="t">Does green investment improve energy firm performance?</p>
+            <dl>
+              <dt>Findings</dt><dd>Green investment can significantly improve financial performance
+                in the long run, and improves short-term environmental performance.</dd>
+              <dt>Data</dt><dd>Energy listed firms in China from 2008 to 2017, with financial data
+                and firm social governance reports.</dd>
+            </dl>
+          </li>
+          <li>
+            <p class="t">Electric vehicles revisited: a review of factors that affect adoption</p>
+            <dl>
+              <dt>Findings</dt><dd>EV adoption will be limited without closing the gap between EV
+                and internal combustion engine (ICE) vehicle costs.</dd>
+              <dt>Data</dt><dd>Panel and cross-sectional data of hybrid EVs, plus cross-country
+                data on charging infrastructure.</dd>
+            </dl>
+          </li>
+          <li>
+            <p class="t">Consumer behavioral adaptation in EV fast charging through pricing</p>
+            <dl>
+              <dt>Findings</dt><dd>Fast charging stations are often occupied for more than 30
+                minutes. A flat fee incentivizes the user to spend longer times at charging
+                stations.</dd>
+              <dt>Data</dt><dd>Real-world time-series data.</dd>
+            </dl>
+          </li>
+        </ul>
+
+        <h2 id="question">3. Research Question &amp; Addition to Literature</h2>
+        <p>The origin of this research can be traced back to experiences and observations in the
+          realm of electric vehicle mobility. A firsthand understanding of the dynamics and
+          mechanisms at play motivated deeper and more nuanced questions. One such question, which
+          was inspired by a Chief Financial Officer's curiosity about the government's role,
+          involves the effects of policy shifts on the EV industry. Specifically, we aim to
+          understand how changes in government subsidies could potentially influence EV charging
+          prices.</p>
+        <p>Beyond this, our research also seeks to delve into the broader factors that may impact
+          EV charging prices, assessing their respective degrees of influence. This pursuit
+          requires us to engage with a variety of factors including market trends, technological
+          advances, infrastructural capabilities, and regulatory frameworks, among others. Our goal
+          is not only to identify these factors but also to quantify their impact and establish a
+          comprehensive understanding of the interplay among them.</p>
+        <p>Another important facet of our study focuses on developing empirical measures to
+          effectively gauge supply and demand for EV charging. To achieve this, we propose to
+          leverage public data and construct robust models that could capture the market dynamics
+          accurately.</p>
+        <p>This research serves as an important addition to the existing literature by extending
+          our understanding of consumer behavior in the EV market. It seeks to contribute a new
+          dimension by analyzing the impact of network effects on EV charging, an aspect previously
+          overlooked in scholarly discourse.</p>
+
+        <h2 id="limitations">4. Limitations &amp; Constraints</h2>
+        <h3>Sources</h3>
+        <p>While conducting our research, we faced several limitations and constraints, primarily
+          pertaining to our data sources and their quality. Our sources included numerous reputable
+          agencies and organizations, such as the U.S. Government, the Department of Energy (DoE)
+          with its sub-agencies like the Office of Energy Efficiency and Renewable Energy (EERE),
+          the Alternative Fuels Data Center (AFDC), and the Energy Information Administration
+          (EIA).</p>
+        <p>We also sourced data from the Department of Transportation (DoT), including the Bureau
+          of Transportation Statistics (BTS) and Federal Highway Administration (FHA), the Census
+          Bureau, the Environmental Protection Agency (EPA), and several commercial entities like
+          EVgo, ChargePoint, and PlugShare. Additionally, the Clean Cities Coalition, the
+          International Energy Agency, the Argonne National Lab's Center for Transportation
+          Research, and AAA also provided valuable data for our research.</p>
+        <h3>Quality</h3>
+        <p>Despite these varied sources, we encountered some challenges related to the quality of
+          the data. For instance, the AFDC price data had inherent limitations owing to its nature,
+          and there was a notable lack of granularity in non-station geographic data. Our budget
+          constraints prevented us from acquiring microgeographic data tools, which could have
+          otherwise enhanced the detail and depth of our analysis. Furthermore, the data collected
+          were essentially snapshots taken at specific points in time and did not provide a
+          continuous, time-series perspective.</p>
+        <p>Another significant constraint was the minimal variation observed in the dependent
+          variable prices, which was coupled with large variations across different states. This
+          discrepancy complicated our analyses and limited the extent of the conclusions we could
+          draw. Despite these limitations, we endeavored to provide the most comprehensive insights
+          possible with the resources at our disposal.</p>
+
+        <h2 id="variables">5. Description of Variables</h2>
+        <p>The models use four classes of regressor: geography (U.S. region in Model 1, U.S. state
+          in Model 2), facility type, charging network, and three continuous measures entered in
+          logs. Variable cost is proxied by the state electricity price. Supply is proxied by the
+          count of charging cables in the state. Demand is proxied by urban vehicle miles
+          traveled.</p>
+        <div class="missing">
+          <strong>Note on this section.</strong> The original variable-definition table was an
+          embedded image in the source document and was not preserved in the archived copy from
+          which this page was rebuilt. The variables are described above from the model
+          specifications and the results table rather than reproduced from the original exhibit.
+        </div>
+
+        <h2 id="models">6. Models</h2>
+        <div class="eq">
+          <span class="name">Model 1</span>
+          log(TotalChargingPrice) = U.S.Region + Facility + ChargingNetwork
+          &nbsp;+ log(Supply) + log(VariableCost) + log(Demand)
+        </div>
+        <div class="eq">
+          <span class="name">Model 2</span>
+          log(ChargingPriceFixedFee) = U.S.State + Facility + ChargingNetwork
+          &nbsp;+ log(Supply) + log(VariableCost) + log(Demand)
+        </div>
+        <p>Both specifications are log-log in the continuous terms, so the coefficients on supply,
+          variable cost and demand read directly as elasticities.</p>
+
+        <h2 id="results">7. Results</h2>
+        <div class="tbl-wrap">
+          <table class="reg">
+            <caption>Regression results. Standard errors in parentheses.</caption>
+            <thead>
+              <tr>
+                <th class="term" scope="col">Term</th>
+                <th scope="col">(1) log(Total Charging Price)</th>
+                <th scope="col">(2) log(Charging Price Fixed Fee)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="term">regionMidwest</td><td>0.014</td><td class="na">&mdash;</td></tr>
+              <tr class="se"><td class="term"></td><td>(0.034)</td><td></td></tr>
+              <tr><td class="term">regionNortheast</td><td>-0.053**</td><td class="na">&mdash;</td></tr>
+              <tr class="se"><td class="term"></td><td>(0.024)</td><td></td></tr>
+              <tr><td class="term">regionSouth</td><td>0.020</td><td class="na">&mdash;</td></tr>
+              <tr class="se"><td class="term"></td><td>(0.021)</td><td></td></tr>
+              <tr><td class="term">FL</td><td class="na">&mdash;</td><td>-0.422</td></tr>
+              <tr class="se"><td class="term"></td><td></td><td>(0.285)</td></tr>
+              <tr><td class="term">TX</td><td class="na">&mdash;</td><td>0.096</td></tr>
+              <tr class="se"><td class="term"></td><td></td><td>(0.325)</td></tr>
+              <tr><td class="term">WA</td><td class="na">&mdash;</td><td>0.500**</td></tr>
+              <tr class="se"><td class="term"></td><td></td><td>(0.207)</td></tr>
+              <tr><td class="term">facility: government</td><td>-0.066</td><td>-0.711***</td></tr>
+              <tr class="se"><td class="term"></td><td>(0.081)</td><td>(0.223)</td></tr>
+              <tr><td class="term">facility: hotel</td><td>0.034</td><td>0.732***</td></tr>
+              <tr class="se"><td class="term"></td><td>(0.045)</td><td>(0.233)</td></tr>
+              <tr><td class="term">facility: parking</td><td>-0.147**</td><td>-0.259</td></tr>
+              <tr class="se"><td class="term"></td><td>(0.069)</td><td>(0.234)</td></tr>
+              <tr><td class="term">facility: retail</td><td>0.062***</td><td>-0.382***</td></tr>
+              <tr class="se"><td class="term"></td><td>(0.014)</td><td>(0.096)</td></tr>
+              <tr><td class="term">network: Blink</td><td>0.399***</td><td>1.217***</td></tr>
+              <tr class="se"><td class="term"></td><td>(0.033)</td><td>(0.308)</td></tr>
+              <tr><td class="term">network: SemaCharge</td><td>0.059</td><td class="na">&mdash;</td></tr>
+              <tr class="se"><td class="term"></td><td>(0.037)</td><td></td></tr>
+              <tr><td class="term">network: Tesla</td><td>-0.275***</td><td class="na">&mdash;</td></tr>
+              <tr class="se"><td class="term"></td><td>(0.031)</td><td></td></tr>
+              <tr><td class="term">log(state_cables)</td><td>-0.099***</td><td>-0.755***</td></tr>
+              <tr class="se"><td class="term"></td><td>(0.019)</td><td>(0.160)</td></tr>
+              <tr><td class="term">log(e_price)</td><td>0.156***</td><td>1.780***</td></tr>
+              <tr class="se"><td class="term"></td><td>(0.034)</td><td>(0.322)</td></tr>
+              <tr><td class="term">log(VMT_u)</td><td>0.082***</td><td>0.768***</td></tr>
+              <tr class="se"><td class="term"></td><td>(0.017)</td><td>(0.171)</td></tr>
+              <tr class="const"><td class="term">Constant</td><td>1.763***</td><td>2.186</td></tr>
+              <tr class="se"><td class="term"></td><td>(0.133)</td><td>(1.609)</td></tr>
+            </tbody>
+          </table>
+          <p class="tbl-note">Significance: * p&lt;0.1; ** p&lt;0.05; *** p&lt;0.01. A dash marks a
+            term not entered in that specification: Model 1 uses U.S. region, Model 2 uses U.S.
+            state.</p>
+        </div>
+
+        <p>Our findings reveal an interesting dichotomy in the EV charging landscape. Specifically,
+          we observed that the pricing strategy of Blink, a leading EV charging provider, is
+          comparatively expensive, while Tesla's strategy appears to be more cost-efficient. This
+          could be attributed to Tesla's business model, which aims to incentivize consumers to buy
+          their electric vehicles by keeping the charging costs relatively low. This acts as a key
+          differentiator in the marketplace and could significantly sway the purchasing decision of
+          potential EV buyers.</p>
+        <p>Another significant observation is the influence of geographical location, facility
+          type, and network effects on the charging prices. Charging costs can vary based on
+          whether the charging station is located in a metropolitan area, a suburban area, or a
+          rural region. The type of facility, whether a commercial establishment, a public parking
+          area, or a residential complex, also impacts the price. Additionally, we found that
+          network effects play a pivotal role in determining pricing. The density and distribution
+          of charging stations in a region can influence consumer behavior and, consequently, the
+          pricing strategies of EV charging providers.</p>
+        <p>Our study further unraveled the counterbalancing forces of supply and demand on charging
+          prices. An increase in supply, symbolized by the availability of more charging stations,
+          tends to decrease the price. An increase in demand, represented by a growing number of EV
+          users, tends to drive the price upward. This interplay showcases the fundamental market
+          dynamics at work in the EV charging landscape.</p>
+        <p>Furthermore, we conducted a series of sensitivity analyses to ensure the robustness of
+          our results. The conclusions remained largely consistent even when we removed California
+          observations, Tesla observations, and other potentially influential data points.</p>
+        <p>However, we must underline that while analyzing this complex system, issues such as
+          multicollinearity and heteroskedasticity must be closely monitored. Multicollinearity,
+          the correlation among independent variables, can distort the model's estimations.
+          Heteroskedasticity, where the variability of the error terms is unequal across different
+          levels of the explanatory variables, can complicate the interpretation of results.
+          Rigorous statistical checks are therefore crucial to maintain the integrity of the
+          research findings.</p>
+        <div class="missing">
+          <strong>Note on this section.</strong> The original diagnostic plots accompanying this
+          discussion were embedded images and were not preserved in the archived copy from which
+          this page was rebuilt.
+        </div>
+
+        <h2 id="conclusion">8. Conclusion &amp; Further Research</h2>
+        <p>In conclusion, our research offers valuable insights into the current landscape of the
+          EV charging market. As we look towards the future, the potential growth of the EV market
+          and its corresponding charging infrastructure is promising. Several critical factors will
+          drive this growth, including technological advancements, changing consumer preferences,
+          and supportive government policies.</p>
+        <p>One specific area we suggest for further research is the effect of government subsidies
+          on charging prices. As government policy is an influential factor in the EV market, a
+          detailed understanding of its impact could offer valuable insights for both policy makers
+          and market participants. This includes investigating how changes in subsidies could
+          impact the competitive landscape and influence the pricing strategies of charging service
+          providers.</p>
+        <p>A comprehensive cost-benefit analysis of EV policies could also prove beneficial,
+          particularly in assessing the existence and scale of positive externalities. This could
+          help quantify the societal benefits of adopting EVs and, by extension, influence the
+          scale and design of future policies.</p>
+        <p>Another interesting area for further research could be the examination of two-part
+          tariffs in the context of EV charging. This refers to a pricing strategy where consumers
+          pay a fixed fee for access and a variable fee based on usage. Understanding how this
+          approach could be applied to EV charging may offer new opportunities for market
+          differentiation and consumer engagement.</p>
+        <p>Lastly, a deeper dive into the network effects and the practice of tying could provide
+          valuable insights. Network effects refer to the phenomenon where the value of a product
+          or service increases with the number of users, while tying is a strategy where a company
+          sells two products together. Given the growth and dynamism of the EV market, these areas
+          could offer fascinating avenues for future exploration.</p>
+
+        <footer class="paper">
+          <p>Marco Ruffinelli-Ojeda, San Francisco State University, 2022. Rebuilt as a navigable
+            web document in 2026 from the archived source in
+            <a href="https://github.com/ruffinellimarco/Portfolio">this repository</a>. Text is
+            reproduced from the original; two exhibits that existed only as embedded images, the
+            variable-definition table and the diagnostic plots, were not preserved in the archive
+            and are marked in place rather than reconstructed. Light copyedits were limited to
+            typography and the expansion of abbreviations.</p>
+        </footer>
+
+      </article>
+    </main>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+    var heads = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
+    if (!('IntersectionObserver' in window)) return;
+    var seen = new Map();
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { seen.set(e.target.id, e.intersectionRatio > 0); });
+      var current = -1;
+      heads.forEach(function (h, i) { if (h && seen.get(h.id)) { if (current < 0) current = i; } });
+      if (current < 0) return;
+      links.forEach(function (a, i) { a.classList.toggle('here', i === current); });
+    }, { rootMargin: '0px 0px -70% 0px' });
+    heads.forEach(function (h) { if (h) io.observe(h); });
+  })();
+</script>
+
+</body>
+</html>
